@@ -33,6 +33,12 @@ mongoose.connect(process.env.MONGODB_URL)
 
 })
 
+app.get("/", (req,res) =>{
+    res.status(200).json(
+        "Welcome to Betwise, Your Surest Betting Server"
+    )
+})
+
 // Routes
 app.use("/api/", authRoutes);
 app.use("/api/", gameRoutes);
