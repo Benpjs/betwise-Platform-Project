@@ -118,7 +118,7 @@ exports.forgotPassword = async (req, res) => {
 
     const resetToken = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "15m" });
 
-    const resetLink =` http://localhost:4000/auth/reset-password/${resetToken}`;
+    const resetLink =` https://betwise-platform-project.onrender.com/reset-password/${resetToken}`;
 
     await sendEmail(
       process.env.EMAIL,  // send to same email as sender
