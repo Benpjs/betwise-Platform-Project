@@ -3,21 +3,26 @@ const mongoose = require ("mongoose")
 const dotenv = require ("dotenv")
 const bcrypt = require ("bcryptjs")
 const jwt = require ("jsonwebtoken")
-const authRoutes = require("./routes/authRoutes");
-const gameRoutes = require("./routes/gameRoutes");
-const betRoutes = require("./routes/betRoutes");
-const payoutRoutes = require("./routes/payoutRoute");
-const walletRoutes = require("./routes/walletRoutes");
 
-const cors = require("cors")
+const cors = require("cors");
+ //const Game = require ("")
+// const User = require ("")
+ const auth = require('./middlewares/auth');
+ const admin = require('./middlewares/admin');
+// const router = express.Router()
+const authRoutes = require('./routes/authRoute')
+const adminRoutes = require('./routes/adminRoute');
+const betRoutes = require('./routes/betRoute');
+const gameRoutes = require('./routes/gameRoute');
+
+
 
 dotenv.config()
 
+
+
 const app = express ()
 app.use (express.json ())
-
-app.use(cors())
-//app.use(cors())
 const PORT =process.env.PORT || 6000
 
 mongoose.connect(process.env.MONGODB_URL)
@@ -33,21 +38,10 @@ mongoose.connect(process.env.MONGODB_URL)
 
 })
 
-app.get("/", (req,res) =>{
-    res.status(200).json(
-        "Welcome to Betwise, Your Surest Betting Server"
-    )
-})
-
-// Routes
-app.use("/api/", authRoutes);
-app.use("/api/", gameRoutes);
-app.use("/api/", betRoutes);
-app.use("/api/", payoutRoutes);
-app.use("/api", walletRoutes); 
+//routes
+app.use("/api/auth", authRoutes); 
+app.use('/api/admin', adminRoutes);
+app.use('/api/bets', betRoutes);
+app.use('/api/games', gameRoutes);
 
 
-
-
- 
- 

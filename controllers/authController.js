@@ -1,193 +1,94 @@
-const User = require("../models/userModel");
-const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken");
-const crypto = require("crypto")
-const token = crypto.randomBytes(32).toString('hex');
-const http = require("http")
-const cors = require("cors")
-const sendEmail = require("../sendemail");
+const User = require('../models/userModel');
+const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
+const nodemailer = require('nodemailer');
 
+const generateToken = (userId) => {
+  return jwt.sign({ id: userId }, process.env.JWT_SECRET, { expiresIn: '15m' });
+};
 
-// REGISTER A NEW USER
-
+// REGISTER
 exports.register = async (req, res) => {
-  const { name, email, phoneNumber, username, password } = req.body;
-
   try {
-    // Check if user already exists
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return res.status(400).json({ msg: "User already exists" });
-    }
+    const { username, email, phoneNumber, password, role } = req.body;
 
-    // Hash the password
-    const hashedPassword = await bcrypt.hash(password, 12);
+    const existingUser = await User.findOne({ $or: [{ email }, { username }] });
+    if (existingUser) return res.status(400).json({ msg: 'User already exists' });
 
-    // Create and save the new user
-    const newUser = new User({
-      name,
-      email,
-      phoneNumber,
-      username,
-      password: hashedPassword,
-    });
+    const hashedPassword = await bcrypt.hash(password, 10);
 
+    const newUser = new User({ username, email, phoneNumber, password: hashedPassword, role });
     await newUser.save();
 
-    res.status(201).json({ msg: "Registration successful" });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(201).json({ msg: 'User registered successfully' });
+  } catch (err) {
+    res.status(500).json({ msg: 'Server error', error: err.message });
   }
 };
 
-
-//VERIFY EMAIL
-exports.verifyEmail = async (req, res) => {
-  const { token } = req.params;
-
+// LOGIN
+exports.login = async (req, res) => {
   try {
+    const { email, password } = req.body;
+
+    const user = await User.findOne({ email });
+    if (!user) return res.status(400).json({ msg: 'Invalid credentials' });
+
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) return res.status(400).json({ msg: 'Invalid credentials' });
+
+    const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1d' });
+
+    res.status(200).json({ token, user: { id: user._id, username: user.username, email: user.email, role: user.role } });
+  } catch (err) {
+    res.status(500).json({ msg: 'Server error', error: err.message });
+  }
+};
+
+// FORGOT PASSWORD
+exports.forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ msg: 'User not found' });
+
+    const token = generateToken(user._id);
+
+    const resetLink = `http://localhost:3000/reset-password/${token}`;
+
+    // Fake email transport — replace with real if needed
+    console.log(`Password reset link: ${resetLink}`);
+
+    res.status(200).json({ msg: 'Reset link sent', resetLink });
+  } catch (err) {
+    res.status(500).json({ msg: 'Server error', error: err.message });
+  }
+};
+
+// RESET PASSWORD
+exports.resetPassword = async (req, res) => {
+  try {
+    const token = req.params.token.trim();
+    const { newPassword } = req.body;
+
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const user = await User.findById(decoded.id);
-    if (!user) return res.status(404).json({ msg: "User not found" });
+    if (!user) return res.status(404).json({ msg: 'User not found' });
 
-    if (user.isVerified) return res.status(400).json({ msg: "Email already verified" });
-
-    user.isVerified = true;
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    user.password = hashedPassword;
     await user.save();
 
-    res.status(200).json({ msg: "Email verified successfully!" });
+    res.status(200).json({ msg: 'Password reset successful' });
   } catch (err) {
-    console.error(err.message);
-    res.status(400).json({ msg: "Invalid or expired token" });
-  }
-};
-
-  // LOGIN AN EXXISTING USER
-
-  exports.login = async (req, res) => {
-    const { email, password } = req.body;
-    try {
-      const user = await User.findOne({ email });
-      if (!user) return res.status(400).json({ msg: "Invalid credentials" });
-  
-      const isMatch = await bcrypt.compare(password, user.password);
-      if (!isMatch) return res.status(400).json({ msg: "Invalid credentials" });
-  
-      const token = jwt.sign(
-        { id: user._id, role: user.role }, 
-        process.env.JWT_SECRET, 
-        {expiresIn: "1d",}
-      );
-  
-      res.json({ 
-        message: "Login Successful",
-        token,
-        user:{
-          name: user?.name,
-          email: user?.email,
-          phoneNumber: user?.phoneNumber,
-          username: user?.username,
-          role: user?.role
-        }
-      });
-    } catch (err) {
-      res.status(500).json({ msg: "Server error" });
-    }
-  };
-
-  // GETTING ALL USERS
-  
-exports.getUsers = async (req, res) => {
-  try {
-    const users = await User.find().select('-password') // exclude passwords
-    res.json(users)
-  } catch (err) {
-    console.error("Error fetching users:", err);
-    res.status(500).json({ message: "Server error" })
-  }
-}
-
-//FORGOT PASSWORD
-
-exports.forgotPassword = async (req, res) => {
-  const { email } = req.body;
-
-  try {
-    const user = await User.findOne({ email });
-    if (!user) return res.status(404).json({ msg: "User not found" });
-
-    const resetToken = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "15m" });
-
-    const resetLink =` https://betwise-platform-project.onrender.com/reset-password/${resetToken}`;
-
-    await sendEmail(
-      process.env.EMAIL,  // send to same email as sender
-      "Password Reset Link",
-     ` Reset link for ${email}:\n\n${resetLink}`
-    );
-
-    return res.status(200).json({ msg: "Reset link sent to admin email." });
-
-  } catch (error) {
-    console.error("Forgot Password Error:", error.message);
-    return res.status(500).json({ msg: "Server error" });
+    console.error('Reset token error:', err.message);
+    res.status(400).json({ msg: 'Invalid or expired token' });
   }
 };
 
 
-//RESET PASSWORD
 
-exports.resetPassword = async (req, res) => {
-  const { token } = req.params;
-  const { newPassword } = req.body;
-
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET); 
-
-    const user = await User.findById(decoded.id);
-    if (!user) return res.status(404).json({ msg: "User not found" });
-
-    user.password = await bcrypt.hash(newPassword, 10);
-    await user.save();
-
-    res.status(200).json({ msg: "Password reset successful" });
-
-  } catch (error) {
-    console.error("Reset password error:", error.message);
-    res.status(400).json({ msg: "Invalid or expired token" });
-  }
+exports.logout = async (req, res) => {
+  
+  res.status(200).json({ message: 'User logged out successfully' });
 };
-
-
-//change Password (Logged-in User
-
-exports.changePassword = async (req, res) => {
-  const userId = req.user.id;
-  const { oldPassword, newPassword } = req.body;
-
-  try {
-    const user = await User.findById(userId);
-    const isMatch = await bcrypt.compare(oldPassword, user.password);
-    if (!isMatch) return res.status(400).json({ msg: "Old password incorrect" });
-
-    user.password = await bcrypt.hash(newPassword, 10);
-    await user.save();
-
-    res.status(200).json({ msg: "Password changed successfully" });
-  } catch (err) {
-    res.status(500).json({ msg: "Server error" });
-  }
-};
-
-
-//Logout
-
-exports.logout = (req, res) => {
-  res.clearCookie("token"); // if using cookies
-  res.status(200).json({ msg: "Logged out successfully" });
-};
-
-
-// module.exports = {
-//   login
-// }

@@ -6,8 +6,9 @@ const gameSchema = new mongoose.Schema({
   oddsB: { type: Number, required: true },
   oddsDraw: { type: Number, required: true },
   date: { type: Date, required: true },
-  result: { type: String, enum: ["A","B","Draw","pending"], default: "pending"}
-}, {timestamps: true });
+  result: { type: String, enum: ['A', 'B', 'Draw', 'pending'], default: 'pending' }
+
+});
 
   
   
