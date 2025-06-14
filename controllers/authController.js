@@ -2,6 +2,8 @@ const User = require('../models/userModel');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const nodemailer = require('nodemailer');
+const sendEmail = require('../utility/sendEmail')
+
 
 const generateToken = (userId) => {
   return jwt.sign({ id: userId }, process.env.JWT_SECRET, { expiresIn: '15m' });
@@ -49,22 +51,32 @@ exports.login = async (req, res) => {
 exports.forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
+    
     const user = await User.findOne({ email });
     if (!user) return res.status(404).json({ msg: 'User not found' });
 
-    const token = generateToken(user._id);
+    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
+      expiresIn: '10m'
+    });
 
-    const resetLink = `http://localhost:3000/reset-password/${token}`;
+    const resetLink = `${process.env.BASE_URL}/reset-password/${token}`;
 
-    // Fake email transport — replace with real if needed
-    console.log(`Password reset link: ${resetLink}`);
+    const html = `
+      <h3>Password Reset Request</h3>
+      <p>Hello ${user.username},</p>
+      <p>Click the link below to reset your password:</p>
+      <a href="${resetLink}">Reset Password</a>
+      <p>This link will expire in 10 minutes.</p>
+    `;
 
-    res.status(200).json({ msg: 'Reset link sent', resetLink });
+    await sendEmail(user.email, 'Reset Your Password - Betwise', html);
+
+    res.status(200).json({ msg: 'Reset link sent to your email' });
   } catch (err) {
-    res.status(500).json({ msg: 'Server error', error: err.message });
-  }
+    console.error(err);
+    res.status(500).json({ msg: 'Server error', error: err.message });
+  }
 };
-
 // RESET PASSWORD
 exports.resetPassword = async (req, res) => {
   try {

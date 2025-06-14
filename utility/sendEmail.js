@@ -1,22 +1,20 @@
 const nodemailer = require('nodemailer');
 
-const sendEmail = async (email, subject, message) => {
+const sendEmail = async (to, subject, html) => {
   const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
-      user: process.env.GMAIL_USER,
-      pass: process.env.GMAIL_PASS,
+      user: process.env.EMAIL_USER, // your Gmail address
+      pass: process.env.EMAIL_PASS  // your Gmail app password
     },
   });
 
   await transporter.sendMail({
-    from: `"Betwise Support" <${process.env.GMAIL_USER}>`,
-    to: email,
-    subject: subject,
-    html: message,
+    from: `"Betwise" <${process.env.EMAIL_USER}>`,
+    to,
+    subject,
+    html
   });
-
-  console.log("Email sent to", email);
 };
 
 module.exports = sendEmail;
