@@ -51,29 +51,31 @@ exports.login = async (req, res) => {
 exports.forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
-    
+
+    // Check if user exists
     const user = await User.findOne({ email });
     if (!user) return res.status(404).json({ msg: 'User not found' });
 
-    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
-      expiresIn: '10m'
-    });
+    // Generate token
+    const token = generateToken(user._id);
 
-    const resetLink = `${process.env.BASE_URL}/reset-password/${token}`;
+    // Build reset link
+    const resetLink = `${process.env.CLIENT_BASE_URL}/reset-password/${token}`;
 
+    // Email content
+    const subject = 'Password Reset - Betwise';
     const html = `
-      <h3>Password Reset Request</h3>
-      <p>Hello ${user.username},</p>
-      <p>Click the link below to reset your password:</p>
+      <h3>Hello ${user.username},</h3>
+      <p>You requested a password reset. Click the link below to reset your password:</p>
       <a href="${resetLink}">Reset Password</a>
-      <p>This link will expire in 10 minutes.</p>
+      <p>This link expires in 15 min.</p>
     `;
 
-    await sendEmail(user.email, 'Reset Your Password - Betwise', html);
+    // Send email
+    await sendEmail(email, token);
 
-    res.status(200).json({ msg: 'Reset link sent to your email' });
+    res.status(200).json({ msg: 'Reset link sent to your email.' });
   } catch (err) {
-    console.error(err);
     res.status(500).json({ msg: 'Server error', error: err.message });
   }
 };

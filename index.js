@@ -9,11 +9,16 @@ const cors = require("cors");
 // const User = require ("")
  const auth = require('./middlewares/auth');
  const admin = require('./middlewares/admin');
+
+ 
+
 // const router = express.Router()
 const authRoutes = require('./routes/authRoute')
 const adminRoutes = require('./routes/adminRoute');
 const betRoutes = require('./routes/betRoute');
 const gameRoutes = require('./routes/gameRoute');
+const walletRoutes = require('./routes/walletRoute')
+
 
 
 
@@ -41,7 +46,8 @@ mongoose.connect(process.env.MONGODB_URL)
 //routes
 app.use("/api/auth", authRoutes); 
 app.use('/api/admin', adminRoutes);
-app.use('/api/bets', betRoutes);
+app.use('/api/bets', betRoutes);
 app.use('/api/games', gameRoutes);
+app.use('/api/wallet', walletRoutes);
 
 

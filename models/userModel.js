@@ -8,7 +8,8 @@ const userSchema = new mongoose.Schema({
   wallet_balance: { type: Number, default: 1000 },
   role: { type: String, enum: ['user', 'admin'], default: 'user' },
   resetToken: String,
-  resetTokenExpiry: Date
+  resetTokenExpiry: Date,
+  transaction_pin: { type: String, default: null }
 });
 
 module.exports = mongoose.model("User", userSchema);
