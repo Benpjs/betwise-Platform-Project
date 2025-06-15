@@ -7,7 +7,7 @@ const betSchema = new mongoose.Schema({
   stake: { type: Number, required: true },
   potentialPayout: { type: Number, required: true },
   status: { type: String, enum: ['pending', 'won', 'lost'], default: 'pending' }
-});
+}, { timestamps: true}  );
 
 module.exports = mongoose.model('Bet', betSchema);
 

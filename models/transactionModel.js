@@ -6,6 +6,6 @@ const transactionSchema = new mongoose.Schema({
   amount: { type: Number, required: true },
   date: { type: Date, default: Date.now },
   status: { type: String, enum: ['success', 'failed'], default: 'success' }
-});
+}, { timestamps: true } );
 
 module.exports = mongoose.model('Transaction', transactionSchema);

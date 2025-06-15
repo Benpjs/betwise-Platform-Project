@@ -2,6 +2,7 @@ const express = require ("express")
 const mongoose = require ("mongoose")
 const dotenv = require ("dotenv")
 const bcrypt = require ("bcryptjs")
+const crypto = require('crypto');
 const jwt = require ("jsonwebtoken")
 
 const cors = require("cors");

@@ -9,7 +9,9 @@ const userSchema = new mongoose.Schema({
   role: { type: String, enum: ['user', 'admin'], default: 'user' },
   resetToken: String,
   resetTokenExpiry: Date,
-  transaction_pin: { type: String, default: null }
-});
+  transaction_pin: { type: String, default: null },
+  isVerified: { type: Boolean, default: false },
+  verificationToken: { type: String }
+}, { timestamps: true } );
 
 module.exports = mongoose.model("User", userSchema);

@@ -8,7 +8,7 @@ const gameSchema = new mongoose.Schema({
   date: { type: Date, required: true },
   result: { type: String, enum: ['A', 'B', 'Draw', 'pending'], default: 'pending' }
 
-});
+}, { timestamps: true } );
 
   
   
